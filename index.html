@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뽀모도로 타이머</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary-color: #ff6b6b;
+            --text-color: #333333;
+            --btn-text: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            transition: background-color 0.5s ease;
+        }
+
+        .container {
+            text-align: center;
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 350px;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .status {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .timer-display {
+            font-size: 4.5rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.8rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #start-btn {
+            background-color: var(--primary-color);
+            color: var(--btn-text);
+        }
+
+        #start-btn:hover {
+            opacity: 0.9;
+        }
+
+        #reset-btn {
+            background-color: #e0e0e0;
+            color: #666;
+        }
+
+        #reset-btn:hover {
+            background-color: #d5d5d5;
+        }
+
+        /* 휴식 모드일 때 테마 변경용 클래스 */
+        body.break-mode {
+            --primary-color: #4caf50;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="title">Pomodoro</h1>
+    <div class="status" id="status">집중 시간 🎯</div>
+    <div class="timer-display" id="timer">25:00</div>
+    
+    <div class="button-group">
+        <button id="start-btn">시작</button>
+        <button id="reset-btn">리셋</button>
+    </div>
+</div>
+
+<script>
+    // 상태 변수
+    let timer;
+    let isRunning = false;
+    let isWorkSession = true; // true: 집중, false: 휴식
+    let timeLeft = 25 * 60; // 초 단위 (25분)
+
+    // DOM 요소
+    const timerDisplay = document.getElementById('timer');
+    const startBtn = document.getElementById('start-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const statusDisplay = document.getElementById('status');
+    const body = document.body;
+
+    // 시간 포맷팅 함수 (00:00 형태)
+    function updateDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // 타이머 구동 함수
+    function toggleTimer() {
+        if (isRunning) {
+            // 일시정지
+            clearInterval(timer);
+            startBtn.textContent = '시작';
+            startBtn.style.backgroundColor = 'var(--primary-color)';
+        } else {
+            // 시작
+            timer = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    alert(isWorkSession ? '집중 시간이 끝났습니다! 잠시 쉬어보세요.' : '휴식 시간이 끝났습니다! 다시 집중해볼까요?');
+                    switchSession();
+                }
+            }, 1000);
+            startBtn.textContent = '일시정지';
+            startBtn.style.backgroundColor = '#ffa502'; // 일시정지일 때는 주황빛으로 변경
+        }
+        isRunning = !isRunning;
+    }
+
+    // 집중 <-> 휴식 세션 전환
+    function switchSession() {
+        isWorkSession = !isWorkSession;
+        if (isWorkSession) {
+            timeLeft = 25 * 60;
+            statusDisplay.textContent = '집중 시간 🎯';
+            body.classList.remove('break-mode');
+        } else {
+            timeLeft = 5 * 60;
+            statusDisplay.textContent = '휴식 시간 ☕';
+            body.classList.add('break-mode');
+        }
+        isRunning = false;
+        startBtn.textContent = '시작';
+        startBtn.style.backgroundColor = 'var(--primary-color)';
+        updateDisplay();
+    }
+
+    // 리셋 기능
+    function resetTimer() {
+        clearInterval(timer);
+        isRunning = false;
+        isWorkSession = true;
+        timeLeft = 25 * 60;
+        statusDisplay.textContent = '집중 시간 🎯';
+        body.classList.remove('break-mode');
+        startBtn.textContent = '시작';
+        startBtn.style.backgroundColor = 'var(--primary-color)';
+        updateDisplay();
+    }
+
+    // 이벤트 리스너
+    startBtn.addEventListener('click', toggleTimer);
+    resetBtn.addEventListener('click', resetTimer);
+
+    // 초기 화면 설정
+    updateDisplay();
+</script>
+
+</body>
+</html>
