@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>나만의 룰렛 돌리기</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f9f9f9; padding: 20px; }
+        #canvas-container { position: relative; display: inline-block; margin: 20px; }
+        #arrow { 
+            position: absolute; top: -10px; left: 50%; transform: translateX(-50%); 
+            width: 0; height: 0; 
+            border-left: 15px solid transparent; border-right: 15px solid transparent; 
+            border-top: 30px solid #ff4757; z-index: 10;
+        }
+        canvas { border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.15); background: white; }
+        button { font-size: 16px; padding: 10px 20px; margin: 10px; cursor: pointer; border-radius: 5px; border: none; background: #2ed573; color: white; font-weight: bold; }
+        button:hover { background: #26af5f; }
+        input { font-size: 16px; padding: 8px; width: 200px; border-radius: 5px; border: 1px solid #ccc; }
+        #result { font-size: 24px; font-weight: bold; margin-top: 20px; color: #ff4757; min-height: 36px; }
+        .item-list { margin: 20px auto; max-width: 400px; text-align: left; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .item-tag { display: inline-block; background: #e4e7eb; padding: 5px 10px; margin: 5px; border-radius: 15px; font-size: 14px; }
+        .remove-btn { margin-left: 5px; cursor: pointer; color: #ff4757; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>🎯 랜덤 룰렛 돌리기</h1>
+    
+    <div>
+        <input type="text" id="item-input" placeholder="항목 입력 (예: 짜장면)">
+        <button onclick="addItem()">추가</button>
+    </div>
+
+    <div class="item-list">
+        <strong>현재 항목 목록:</strong>
+        <div id="items-container"></div>
+    </div>
+
+    <div id="canvas-container">
+        <div id="arrow"></div>
+        <canvas id="wheelCanvas" width="350" height="350"></canvas>
+    </div>
+
+    <br>
+    <button onclick="spinWheel()" style="background: #ff4757; font-size: 20px; padding: 15px 40px;">룰렛 돌리기!</button>
+    <div id="result"></div>
+
+    <script>
+        let items = ['짜장면', '짬뽕', '볶음밥', '탕수육'];
+        const colors = ['#ff6b81', '#70a1ff', '#7bed9f', '#eccc68', '#ff7f50', '#a4b0be', '#ffa502', '#2ed573'];
+        
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentAngle = 0;
+        let isSpinning = false;
+
+        function drawWheel() {
+            const numSegments = items.length;
+            if (numSegments === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+            const arcSize = (2 * Math.PI) / numSegments;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = currentAngle + i * arcSize;
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, canvas.height / 2);
+                ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2, angle, angle + arcSize);
+                ctx.lineTo(canvas.width / 2, canvas.height / 2);
+                ctx.fill();
+
+                // 텍스트 추가
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 16px sans-serif";
+                ctx.fillText(items[i], canvas.width / 2 - 20, 5);
+                ctx.restore();
+            }
+        }
+
+        function renderItems() {
+            const container = document.getElementById('items-container');
+            container.innerHTML = '';
+            items.forEach((item, index) => {
+                container.innerHTML += `<span class="item-tag">${item}<span class="remove-btn" onclick="removeItem(${index})"> ×</span></span>`;
+            });
+            drawWheel();
+        }
+
+        function addItem() {
+            const input = document.getElementById('item-input');
+            const value = input.value.trim();
+            if (value) {
+                items.push(value);
+                input.value = '';
+                renderItems();
+            }
+        }
+
+        function removeItem(index) {
+            if (items.length <= 2) {
+                alert("룰렛을 돌리려면 최소 2개 이상의 항목이 필요합니다.");
+                return;
+            }
+            items.splice(index, 1);
+            renderItems();
+        }
+
+        function spinWheel() {
+            if (isSpinning || items.length === 0) return;
+            isSpinning = true;
+            document.getElementById('result').innerText = "두근두근...";
+
+            const spinAngleStart = Math.random() * 10 + 10;
+            let spinTime = 0;
+            const spinTimeTotal = Math.random() * 3000 + 4000; // 4~7초 동안 회전
+
+            function rotate() {
+                spinTime += 30;
+                if (spinTime >= spinTimeTotal) {
+                    stopRotate();
+                    return;
+                }
+                const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+                currentAngle += (spinAngle * Math.PI / 180);
+                drawWheel();
+                requestAnimationFrame(rotate);
+            }
+
+            function easeOut(t, b, c, d) {
+                const ts = (t /= d) * t;
+                const tc = ts * t;
+                return b + c * (tc * ts + -5 * ts * ts + 10 * tc + -10 * ts + 5 * t);
+            }
+
+            function stopRotate() {
+                isSpinning = false;
+                const degrees = (currentAngle * 180 / Math.PI) % 360;
+                const numSegments = items.length;
+                const arcSize = 360 / numSegments;
+                
+                // 화살표가 12시 방향(270도)을 가리키므로 이에 맞춰 인덱스 계산
+                let index = Math.floor((360 - degrees + 270) % 360 / arcSize);
+                if (index < 0) index = numSegments - 1;
+                
+                document.getElementById('result').innerText = `🎉 결과: [${items[index]}] 당첨!`;
+            }
+
+            rotate();
+        }
+
+        // 초기 실행
+        renderItems();
+    </script>
+</body>
+</html>
